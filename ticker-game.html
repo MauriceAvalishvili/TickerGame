@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CNBC's Quicker Than the Ticker</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f8f6f1;
+  padding: 20px;
+}
+.container { max-width: 680px; margin: 0 auto; }
+.header { text-align: center; margin-bottom: 30px; }
+.header h1 { font-size: 28px; margin-bottom: 8px; }
+.header p { color: #666; font-size: 14px; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.stat {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.stat-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.stat-value { font-size: 22px; font-weight: 500; }
+.lives { font-size: 18px; }
+.heart { opacity: 1; }
+.heart.lost { opacity: 0.2; }
+.card {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 24px;
+}
+.company-section {
+  text-align: center;
+  padding: 30px 0;
+}
+.company-label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.company-name {
+  font-size: 26px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  margin: 0 4px;
+}
+.sector-badge { background: #e6f1fb; color: #0c447c; }
+.easy-badge { background: #eaf3de; color: #3b6d11; }
+.hard-badge { background: #fcebeb; color: #a32d2d; }
+.input-row {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+#ticker-input {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 500;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+}
+#ticker-input:focus {
+  outline: none;
+  border-color: #999;
+}
+#ticker-input.correct {
+  background: #eaf3de;
+  border-color: #3b6d11;
+  color: #3b6d11;
+}
+#ticker-input.wrong {
+  background: #fcebeb;
+  border-color: #a32d2d;
+  color: #a32d2d;
+}
+button {
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+}
+button:hover { background: #f5f5f5; }
+.feedback {
+  text-align: center;
+  font-weight: 500;
+  min-height: 24px;
+  margin: 12px 0;
+}
+.feedback.correct { color: #3b6d11; }
+.feedback.wrong { color: #a32d2d; }
+.hint-section { text-align: center; margin: 12px 0; }
+.hint-btn {
+  background: none;
+  border: none;
+  color: #666;
+  text-decoration: underline;
+  font-size: 13px;
+  padding: 4px;
+}
+.hint-text {
+  color: #666;
+  font-size: 13px;
+  margin-top: 8px;
+  min-height: 20px;
+}
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+.progress { font-size: 12px; color: #666; }
+#game-over {
+  text-align: center;
+  padding: 40px 20px;
+}
+.result-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.win-badge { background: #eaf3de; color: #3b6d11; }
+.lose-badge { background: #fcebeb; color: #a32d2d; }
+#final-score {
+  font-size: 42px;
+  font-weight: 500;
+  margin: 12px 0;
+}
+#final-msg {
+  color: #666;
+  margin-bottom: 20px;
+}
+.missed-list {
+  text-align: left;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 20px 0;
+  font-size: 13px;
+}
+.missed-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>CNBC's Quicker Than the Ticker</h1>
+    <p>Guess the ticker symbol — 8 questions, 3 lives</p>
+  </div>
+
+  <div class="card" id="password-screen" style="text-align:center;padding:60px 40px;">
+    <h2 style="margin-bottom:20px;font-size:22px;">Enter Password</h2>
+    <input type="password" id="password-input" placeholder="Password" style="width:250px;padding:12px;font-size:16px;border:2px solid #ddd;border-radius:8px;text-align:center;margin-bottom:12px;">
+    <div style="margin-bottom:20px;">
+      <button id="password-submit" style="padding:12px 32px;">Enter</button>
+    </div>
+    <div id="password-error" style="color:#a32d2d;font-size:14px;min-height:20px;"></div>
+  </div>
+
+  <div class="card" id="start-screen" style="display:none;text-align:center;padding:60px 40px;">
+    <h2 style="margin-bottom:20px;font-size:24px;">Ready to play?</h2>
+    <p style="color:#666;margin-bottom:12px;">You'll have 5 seconds per question</p>
+    <p style="color:#666;margin-bottom:12px;">Faster answers = more points</p>
+    <p style="color:#666;margin-bottom:30px;">3 wrong answers and you're out</p>
+    <button id="start-btn" style="padding:16px 48px;font-size:18px;font-weight:500;">START GAME</button>
+  </div>
+
+  <div id="game-container" style="display:none;">
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Score</div>
+      <div class="stat-value" id="score">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Lives</div>
+      <div class="stat-value lives" id="lives">
+        <span class="heart">♥</span>
+        <span class="heart">♥</span>
+        <span class="heart">♥</span>
+      </div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Streak</div>
+      <div class="stat-value" id="streak">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Question</div>
+      <div class="stat-value" id="question">1/8</div>
+    </div>
+  </div>
+
+  <div class="card" id="game-area">
+    <div class="company-section">
+      <div class="company-label">What is the ticker symbol for...</div>
+      <div class="company-name" id="company">Loading...</div>
+      <div>
+        <span class="badge sector-badge" id="sector">—</span>
+        <span class="badge" id="difficulty">—</span>
+      </div>
+      <div id="timer" style="font-size:32px;font-weight:500;margin-top:16px;color:#a32d2d;">5.0</div>
+    </div>
+
+    <div class="input-row">
+      <input type="text" id="ticker-input" placeholder="TYPE TICKER" maxlength="5">
+      <button id="submit-btn">Submit</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="hint-section">
+      <button class="hint-btn" id="hint-btn">Show hint</button>
+      <div class="hint-text" id="hint-text"></div>
+    </div>
+
+    <div class="actions">
+      <button id="skip-btn">Skip</button>
+      <div class="progress" id="progress">Question 1 of 8</div>
+      <button id="next-btn" style="display:none;">Next →</button>
+    </div>
+  </div>
+
+  <div class="card" id="game-over" style="display:none;">
+    <div id="result-badge"></div>
+    <div id="final-score"></div>
+    <div id="final-msg"></div>
+    <div class="missed-list" id="missed-list"></div>
+    <button id="restart-btn">Play again</button>
+  </div>
+  </div>
+</div>
+
+<script>
+const CORRECT_PASSWORD = 'maurice';
+
+function checkPassword() {
+  const input = document.getElementById('password-input');
+  const entered = input.value.trim().toLowerCase();
+  
+  if (entered === CORRECT_PASSWORD) {
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'block';
+  } else {
+    document.getElementById('password-error').textContent = 'Incorrect password';
+    input.value = '';
+    input.focus();
+  }
+}
+
+function startGameFromButton() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('game-container').style.display = 'block';
+  startGame();
+}
+
+document.getElementById('password-submit').addEventListener('click', checkPassword);
+document.getElementById('password-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+document.getElementById('start-btn').addEventListener('click', startGameFromButton);
+
+const EASY = [
+  ["AAPL","Apple","Tech"],
+  ["MSFT","Microsoft","Tech"],
+  ["GOOGL","Alphabet A","Tech"],
+  ["META","Meta","Tech"],
+  ["AMZN","Amazon","Consumer"],
+  ["TSLA","Tesla","Consumer"],
+  ["NFLX","Netflix","Tech"],
+  ["NVDA","Nvidia","Tech"],
+  ["AMD","AMD","Tech"],
+  ["INTC","Intel","Tech"],
+  ["ORCL","Oracle","Tech"],
+  ["CSCO","Cisco","Tech"],
+  ["ADBE","Adobe","Tech"],
+  ["CRM","Salesforce","Tech"],
+  ["PYPL","PayPal","Finance"],
+  ["DIS","Disney","Consumer"],
+  ["SBUX","Starbucks","Consumer"],
+  ["NKE","Nike","Consumer"],
+  ["BA","Boeing","Industrial"],
+  ["CAT","Caterpillar","Industrial"],
+  ["DE","Deere","Industrial"],
+  ["GE","GE Aerospace","Industrial"],
+  ["GM","General Motors","Consumer"],
+  ["F","Ford","Consumer"],
+  ["UBER","Uber","Tech"],
+  ["KO","Coca-Cola","Consumer"],
+  ["PEP","PepsiCo","Consumer"],
+  ["WMT","Walmart","Consumer"],
+  ["COST","Costco","Consumer"],
+  ["TGT","Target","Consumer"],
+  ["HD","Home Depot","Consumer"],
+  ["LOW","Lowe's","Consumer"],
+  ["MCD","McDonald's","Consumer"],
+  ["CVS","CVS Health","Health"],
+  ["UPS","UPS","Industrial"],
+  ["FDX","FedEx","Industrial"],
+  ["DAL","Delta","Industrial"],
+  ["V","Visa","Finance"],
+  ["MA","Mastercard","Finance"],
+  ["JPM","JPMorgan","Finance"],
+  ["BAC","Bank of America","Finance"],
+  ["C","Citigroup","Finance"],
+  ["GS","Goldman Sachs","Finance"],
+  ["T","AT&T","Telecom"],
+  ["VZ","Verizon","Telecom"],
+  ["XOM","Exxon Mobil","Energy"],
+  ["CVX","Chevron","Energy"],
+  ["IBM","IBM","Tech"]
+];
+
+const HARD = [
+  ["LLY","Eli Lilly","Health"],
+  ["MMM","3M","Industrial"],
+  ["BRK.B","Berkshire Hathaway","Finance"],
+  ["JNJ","Johnson & Johnson","Health"],
+  ["UNH","UnitedHealth","Health"],
+  ["PG","Procter & Gamble","Consumer"],
+  ["MRK","Merck","Health"],
+  ["ABBV","AbbVie","Health"],
+  ["PFE","Pfizer","Health"],
+  ["ABT","Abbott Labs","Health"],
+  ["DHR","Danaher","Health"],
+  ["BMY","Bristol-Myers","Health"],
+  ["AMGN","Amgen","Health"],
+  ["GILD","Gilead","Health"],
+  ["ISRG","Intuitive Surgical","Health"],
+  ["REGN","Regeneron","Health"],
+  ["VRTX","Vertex Pharma","Health"],
+  ["MDT","Medtronic","Health"],
+  ["SYK","Stryker","Health"],
+  ["BDX","Becton Dickinson","Health"],
+  ["ELV","Elevance Health","Health"],
+  ["CI","Cigna","Health"],
+  ["HUM","Humana","Health"],
+  ["MCK","McKesson","Health"],
+  ["ZTS","Zoetis","Health"],
+  ["ALL","Allstate","Finance"],
+  ["TRV","Travelers","Finance"],
+  ["CB","Chubb","Finance"],
+  ["PGR","Progressive","Finance"]
+];
+
+let game = {
+  questions: [],
+  index: 0,
+  score: 0,
+  streak: 0,
+  lives: 3,
+  missed: [],
+  answered: false,
+  hintUsed: false,
+  timeLeft: 5.0,
+  timerInterval: null,
+  startTime: null
+};
+
+function shuffle(arr) {
+  let a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function makeQuestions() {
+  let easy = shuffle(EASY);
+  let hard = shuffle(HARD);
+  let questions = [];
+  
+  for (let i = 0; i < 3; i++) {
+    questions.push({
+      ticker: easy[i][0],
+      name: easy[i][1],
+      sector: easy[i][2],
+      diff: 'easy'
+    });
+  }
+  
+  if (Math.random() < 0.5) {
+    questions.push({
+      ticker: easy[3][0],
+      name: easy[3][1],
+      sector: easy[3][2],
+      diff: 'easy'
+    });
+  } else {
+    questions.push({
+      ticker: hard[0][0],
+      name: hard[0][1],
+      sector: hard[0][2],
+      diff: 'hard'
+    });
+  }
+  
+  for (let i = 1; i < 5; i++) {
+    questions.push({
+      ticker: hard[i][0],
+      name: hard[i][1],
+      sector: hard[i][2],
+      diff: 'hard'
+    });
+  }
+  
+  return questions;
+}
+
+function startGame() {
+  game = {
+    questions: makeQuestions(),
+    index: 0,
+    score: 0,
+    streak: 0,
+    lives: 3,
+    missed: [],
+    answered: false,
+    hintUsed: false,
+    timeLeft: 5.0,
+    timerInterval: null,
+    startTime: null
+  };
+  
+  document.getElementById('game-area').style.display = 'block';
+  document.getElementById('game-over').style.display = 'none';
+  
+  updateStats();
+  loadQuestion();
+}
+
+function loadQuestion() {
+  let q = game.questions[game.index];
+  
+  document.getElementById('company').textContent = q.name;
+  document.getElementById('sector').textContent = q.sector;
+  
+  let diffEl = document.getElementById('difficulty');
+  diffEl.textContent = q.diff;
+  diffEl.className = 'badge ' + (q.diff === 'easy' ? 'easy-badge' : 'hard-badge');
+  
+  document.getElementById('ticker-input').value = '';
+  document.getElementById('ticker-input').className = '';
+  document.getElementById('ticker-input').disabled = false;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('hint-text').textContent = '';
+  document.getElementById('hint-btn').style.display = 'inline';
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('skip-btn').style.display = 'inline';
+  document.getElementById('progress').textContent = 'Question ' + (game.index + 1) + ' of 8';
+  
+  game.answered = false;
+  game.hintUsed = false;
+  game.timeLeft = 5.0;
+  game.startTime = Date.now();
+  
+  document.getElementById('ticker-input').focus();
+  
+  if (game.timerInterval) clearInterval(game.timerInterval);
+  
+  game.timerInterval = setInterval(() => {
+    game.timeLeft -= 0.1;
+    if (game.timeLeft <= 0) {
+      game.timeLeft = 0;
+      clearInterval(game.timerInterval);
+      if (!game.answered) {
+        timeExpired();
+      }
+    }
+    document.getElementById('timer').textContent = game.timeLeft.toFixed(1);
+  }, 100);
+}
+
+function updateStats() {
+  document.getElementById('score').textContent = game.score;
+  document.getElementById('streak').textContent = game.streak;
+  document.getElementById('question').textContent = (game.index + 1) + '/8';
+  
+  let hearts = document.querySelectorAll('.heart');
+  hearts.forEach((h, i) => {
+    if (i < game.lives) {
+      h.classList.remove('lost');
+    } else {
+      h.classList.add('lost');
+    }
+  });
+}
+
+function checkAnswer() {
+  if (game.answered) return;
+  
+  let input = document.getElementById('ticker-input');
+  let guess = input.value.trim().toUpperCase();
+  if (!guess) return;
+  
+  clearInterval(game.timerInterval);
+  
+  let q = game.questions[game.index];
+  game.answered = true;
+  
+  input.disabled = true;
+  document.getElementById('hint-btn').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'inline';
+  document.getElementById('skip-btn').style.display = 'none';
+  
+  if (guess === q.ticker) {
+    input.className = 'correct';
+    let base = q.diff === 'easy' ? 10 : 20;
+    let pts = game.hintUsed ? Math.floor(base / 2) : base;
+    
+    let timeBonus = Math.floor(game.timeLeft * 2);
+    
+    let streakBonus = game.streak >= 2 ? 5 : 0;
+    game.score += pts + timeBonus + streakBonus;
+    game.streak++;
+    
+    let msg = 'Correct! +' + pts;
+    if (timeBonus > 0) msg += ', speed +' + timeBonus;
+    if (streakBonus > 0) msg += ', streak +' + streakBonus;
+    if (game.hintUsed) msg += ' (hint used)';
+    
+    document.getElementById('feedback').textContent = msg;
+    document.getElementById('feedback').className = 'feedback correct';
+  } else {
+    input.className = 'wrong';
+    input.value = q.ticker;
+    game.lives--;
+    game.streak = 0;
+    game.missed.push([q.ticker, q.name]);
+    
+    document.getElementById('feedback').textContent = 'Not quite — answer is ' + q.ticker;
+    document.getElementById('feedback').className = 'feedback wrong';
+  }
+  
+  updateStats();
+  
+  if (game.lives === 0) {
+    setTimeout(() => endGame(false), 1000);
+  } else {
+    setTimeout(nextQuestion, 1000);
+  }
+}
+
+function nextQuestion() {
+  game.index++;
+  if (game.index >= 8) {
+    endGame(true);
+  } else {
+    loadQuestion();
+  }
+}
+
+function timeExpired() {
+  if (game.answered) return;
+  
+  let q = game.questions[game.index];
+  game.answered = true;
+  game.lives--;
+  game.streak = 0;
+  game.missed.push([q.ticker, q.name]);
+  
+  let input = document.getElementById('ticker-input');
+  input.disabled = true;
+  input.value = q.ticker;
+  input.className = 'wrong';
+  
+  document.getElementById('feedback').textContent = 'Time expired — answer is ' + q.ticker;
+  document.getElementById('feedback').className = 'feedback wrong';
+  document.getElementById('hint-btn').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'inline';
+  document.getElementById('skip-btn').style.display = 'none';
+  
+  updateStats();
+  
+  if (game.lives === 0) {
+    setTimeout(() => endGame(false), 1000);
+  } else {
+    setTimeout(nextQuestion, 1000);
+  }
+}
+
+function showHint() {
+  if (game.hintUsed) return;
+  game.hintUsed = true;
+  
+  let q = game.questions[game.index];
+  let hint = q.ticker.length + ' letters, starts with "' + q.ticker[0] + '"';
+  document.getElementById('hint-text').textContent = 'Hint: ' + hint + ' (half points)';
+  document.getElementById('hint-btn').style.display = 'none';
+}
+
+function skipQuestion() {
+  clearInterval(game.timerInterval);
+  
+  let q = game.questions[game.index];
+  game.missed.push([q.ticker, q.name]);
+  game.lives--;
+  game.streak = 0;
+  game.answered = true;
+  
+  let input = document.getElementById('ticker-input');
+  input.disabled = true;
+  input.value = q.ticker;
+  document.getElementById('feedback').textContent = 'Skipped — answer is ' + q.ticker;
+  document.getElementById('feedback').className = 'feedback wrong';
+  document.getElementById('hint-btn').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'inline';
+  document.getElementById('skip-btn').style.display = 'none';
+  
+  updateStats();
+  
+  if (game.lives === 0) {
+    setTimeout(() => endGame(false), 1000);
+  } else {
+    setTimeout(nextQuestion, 1000);
+  }
+}
+
+function endGame(won) {
+  document.getElementById('game-area').style.display = 'none';
+  document.getElementById('game-over').style.display = 'block';
+  
+  let badgeEl = document.getElementById('result-badge');
+  if (won) {
+    badgeEl.innerHTML = '<div class="result-badge win-badge">Victory!</div>';
+    document.getElementById('final-msg').textContent = 'You survived all 8 questions with ' + game.lives + ' lives remaining.';
+  } else {
+    badgeEl.innerHTML = '<div class="result-badge lose-badge">Game Over</div>';
+    document.getElementById('final-msg').textContent = 'You ran out of lives after question ' + (game.index + 1) + '.';
+  }
+  
+  document.getElementById('final-score').textContent = game.score + ' points';
+  
+  if (game.missed.length > 0) {
+    let html = '<div style="font-weight:500;margin-bottom:8px;">Missed:</div>';
+    game.missed.forEach(m => {
+      html += '<div class="missed-item">' + m[1] + ' → <strong>' + m[0] + '</strong></div>';
+    });
+    document.getElementById('missed-list').innerHTML = html;
+  } else {
+    document.getElementById('missed-list').innerHTML = '';
+  }
+}
+
+document.getElementById('submit-btn').addEventListener('click', checkAnswer);
+document.getElementById('ticker-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkAnswer();
+});
+document.getElementById('next-btn').addEventListener('click', nextQuestion);
+document.getElementById('hint-btn').addEventListener('click', showHint);
+document.getElementById('skip-btn').addEventListener('click', skipQuestion);
+document.getElementById('restart-btn').addEventListener('click', startGame);
+</script>
+
+</body>
+</html>
